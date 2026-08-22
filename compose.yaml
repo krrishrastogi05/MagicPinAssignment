@@ -1,0 +1,20 @@
+services:
+  vera:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      VERA_DATABASE_PATH: /data/vera.db
+      VERA_MODEL_ENABLED: ${VERA_MODEL_ENABLED:-true}
+      VERA_MODELS: ${VERA_MODELS:-google:gemini-3.7-flash,google:gemini-3.6-flash}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      VERA_TEAM_NAME: ${VERA_TEAM_NAME:-RisingStar}
+      VERA_TEAM_MEMBERS: ${VERA_TEAM_MEMBERS:-Krrish Rastogi}
+      VERA_CONTACT_EMAIL: ${VERA_CONTACT_EMAIL:-krrishrastogi00@gmail.com}
+      VERA_SUBMITTED_AT: ${VERA_SUBMITTED_AT:-not-submitted}
+    volumes:
+      - vera-data:/data
+    restart: unless-stopped
+
+volumes:
+  vera-data:
