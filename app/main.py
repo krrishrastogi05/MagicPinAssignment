@@ -4,7 +4,7 @@ import asyncio
 import time
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 
 from app.composer import Composer, _active_offer, _merchant_name
@@ -97,7 +97,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return ContextAccepted(ack_id=ack_id, stored_at=utc_now())
 
     @app.post("/v1/tick", response_model=TickResponse)
-    async def tick(request: TickRequest) -> TickResponse:
+    async def tick(request: TickRequest, response: Response) -> TickResponse:
         candidates = []
         for trigger_id in dict.fromkeys(request.available_triggers):
             trigger = store.get_context("trigger", trigger_id)
@@ -177,6 +177,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     candidate.suppression_key, candidate.recipient_id
                 )
 
+        sources = sorted({action.composer_source for action in actions})
+        response.headers["X-Vera-Composer"] = ",".join(sources) if sources else "none"
         return TickResponse(actions=actions)
 
     @app.post("/v1/reply", response_model=ReplyResponse)

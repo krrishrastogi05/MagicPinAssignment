@@ -94,6 +94,7 @@ def test_tick_is_grounded_deduplicated_and_deterministic(
     }
     first = client.post("/v1/tick", json=request)
     assert first.status_code == 200
+    assert first.headers["x-vera-composer"] == "deterministic-fallback"
     actions = first.json()["actions"]
     assert len(actions) == 1
     action = actions[0]
@@ -104,10 +105,35 @@ def test_tick_is_grounded_deduplicated_and_deterministic(
     assert "JIDA" in action["body"] or "fluoride" in action["body"].lower()
     assert "http" not in action["body"].lower()
     assert action["suppression_key"] == "research:dentists:2026-W17"
+    assert "composer_source" not in action
 
     repeated = client.post("/v1/tick", json=request)
     assert repeated.status_code == 200
+    assert repeated.headers["x-vera-composer"] == "none"
     assert repeated.json() == {"actions": []}
+
+
+def test_probe_contexts_do_not_pollute_evaluator_health_counts(client: TestClient):
+    assert push(client, "category", "preflight", {"slug": "preflight"}).status_code == 200
+    assert push(
+        client,
+        "merchant",
+        "preflight_merchant_123",
+        {"merchant_id": "preflight_merchant_123"},
+    ).status_code == 200
+    assert push(
+        client,
+        "trigger",
+        "__vera_probe__123_trigger",
+        {"id": "__vera_probe__123_trigger"},
+    ).status_code == 200
+
+    assert client.get("/v1/healthz").json()["contexts_loaded"] == {
+        "category": 0,
+        "merchant": 0,
+        "customer": 0,
+        "trigger": 0,
+    }
 
 
 def test_customer_trigger_requires_context_and_consent(client: TestClient, dataset):

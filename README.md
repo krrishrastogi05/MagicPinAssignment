@@ -123,6 +123,18 @@ The entrypoint repairs Railway volume ownership at startup and then runs the app
 
 The preflight uses unique synthetic context and suppression IDs, so it does not consume any official challenge trigger.
 
+For the complete public-deployment test—including proof that a validated
+message was composed by Gemini rather than the deterministic fallback—run:
+
+```powershell
+python scripts\live_e2e.py https://web-production-5474c.up.railway.app
+```
+
+The live test checks health, metadata, schema rejection, context versioning,
+grounding, the 30-second tick/reply contract, suppression, consent handling,
+a 10-request burst, and the `X-Vera-Composer` provenance header. Probe context
+IDs are excluded from evaluator-facing health counts.
+
 ## Final submission checklist
 
 The team name, participant name, email, and Gemini model choice are configured. The phone number is intentionally not stored or exposed by the bot. Remaining external steps are:

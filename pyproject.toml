@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vera-grounded-bot"
-version = "0.1.1"
+version = "0.1.2"
 description = "Evaluation-first bot for the magicpin Vera AI challenge"
 requires-python = ">=3.11"
 dependencies = [
@@ -12,7 +12,7 @@ dependencies = [
   "httpx>=0.27,<1",
   "orjson>=3.10,<4",
   "pydantic>=2.10,<3",
-  "pydantic-ai-slim[google,retries]",
+  "pydantic-ai-slim[google,retries]>=2.33,<3",
   "uvicorn[standard]>=0.34,<1",
 ]
 

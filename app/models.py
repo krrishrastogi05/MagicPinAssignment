@@ -65,6 +65,10 @@ class TickAction(BaseModel):
     cta: str
     suppression_key: str
     rationale: str = Field(min_length=1)
+    # Internal provenance used for the X-Vera-Composer response header. It is
+    # deliberately excluded so the challenge's JSON response contract stays
+    # unchanged.
+    composer_source: str = Field(default="unknown", exclude=True, repr=False)
 
 
 class TickResponse(BaseModel):

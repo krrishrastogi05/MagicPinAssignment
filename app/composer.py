@@ -858,6 +858,7 @@ class Composer:
             cta=cta,
             suppression_key=candidate.suppression_key,
             rationale=rationale,
+            composer_source=composer_name,
         )
         self.store.save_generation(
             cache_key=cache_key,

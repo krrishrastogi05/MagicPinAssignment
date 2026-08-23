@@ -217,7 +217,14 @@ class Store:
         counts = {"category": 0, "merchant": 0, "customer": 0, "trigger": 0}
         with self._connect() as connection:
             rows = connection.execute(
-                "SELECT scope, COUNT(*) AS n FROM contexts GROUP BY scope"
+                """
+                SELECT scope, COUNT(*) AS n
+                  FROM contexts
+                 WHERE context_id != 'preflight'
+                   AND context_id NOT LIKE 'preflight\\_%' ESCAPE '\\'
+                   AND context_id NOT LIKE '__vera_probe__%'
+                 GROUP BY scope
+                """
             ).fetchall()
         for row in rows:
             counts[str(row["scope"])] = int(row["n"])
@@ -445,10 +452,14 @@ class Store:
     def get_generation(self, cache_key: str) -> dict[str, Any] | None:
         with self._connect() as connection:
             row = connection.execute(
-                "SELECT response_json FROM generations WHERE cache_key = ?",
+                "SELECT response_json, composer FROM generations WHERE cache_key = ?",
                 (cache_key,),
             ).fetchone()
-        return json.loads(row["response_json"]) if row is not None else None
+        if row is None:
+            return None
+        response = json.loads(row["response_json"])
+        response["composer_source"] = str(row["composer"])
+        return response
 
     def save_generation(
         self,
