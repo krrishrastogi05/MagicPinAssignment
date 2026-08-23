@@ -782,7 +782,7 @@ class Composer:
                 ),
                 # Gemini 3.x rejects the legacy sampling parameters. Keep the
                 # output cap, while letting the stable model use its defaults.
-                model_settings=ModelSettings(max_tokens=500),
+                model_settings=ModelSettings(max_tokens=500, thinking="low"),
                 retries={"output": self.settings.model_output_retries},
             )
             self._model_label = ",".join(models)

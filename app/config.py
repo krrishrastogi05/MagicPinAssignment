@@ -19,7 +19,7 @@ class Settings:
         "google:gemini-3.7-flash",
         "google:gemini-3.6-flash",
     )
-    model_timeout_seconds: float = 6.0
+    model_timeout_seconds: float = 18.0
     model_output_retries: int = 1
     evaluation_no_urls: bool = True
     strict_expiry: bool = False
@@ -31,7 +31,7 @@ class Settings:
     approach: str = (
         "deterministic policy + provenance-constrained Gemini composer + validated fallback"
     )
-    version: str = "0.1.2"
+    version: str = "0.1.3"
     submitted_at: str = "not-submitted"
 
     @classmethod
@@ -53,8 +53,12 @@ class Settings:
             database_path=Path(os.getenv("VERA_DATABASE_PATH", "data/vera.db")),
             model_enabled=_as_bool(os.getenv("VERA_MODEL_ENABLED"), True),
             model_names=models,
-            model_timeout_seconds=float(
-                os.getenv("VERA_MODEL_TIMEOUT_SECONDS", "6")
+            model_timeout_seconds=max(
+                15.0,
+                min(
+                    22.0,
+                    float(os.getenv("VERA_MODEL_TIMEOUT_SECONDS", "18")),
+                ),
             ),
             model_output_retries=int(os.getenv("VERA_MODEL_OUTPUT_RETRIES", "1")),
             evaluation_no_urls=_as_bool(
@@ -76,6 +80,6 @@ class Settings:
                 "VERA_APPROACH",
                 "deterministic policy + provenance-constrained Gemini composer + validated fallback",
             ),
-            version=os.getenv("VERA_VERSION", "0.1.2"),
+            version=os.getenv("VERA_VERSION", "0.1.3"),
             submitted_at=os.getenv("VERA_SUBMITTED_AT", "not-submitted"),
         )

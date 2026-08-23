@@ -137,18 +137,25 @@ def accepted_context(
             "delivered_at": now,
         },
         timeout=10,
+        retries=3,
+    )
+    accepted = status == 200 and body.get("accepted") is True
+    replay_after_lost_response = (
+        status == 409
+        and body.get("reason") == "stale_version"
+        and body.get("current_version") == 1
     )
     reporter.check(
         f"context/{scope}",
-        status == 200 and body.get("accepted") is True and elapsed < 5,
+        (accepted or replay_after_lost_response) and elapsed < 5,
         f"HTTP {status}, {elapsed:.2f}s",
     )
 
 
-def run(base_url: str) -> int:
+def run(base_url: str, probe_id: str | None = None) -> int:
     client = Client(base_url)
     reporter = Reporter()
-    suffix = uuid.uuid4().hex[:12]
+    suffix = probe_id or uuid.uuid4().hex[:12]
     prefix = f"__vera_probe__{suffix}"
     category_id = f"{prefix}_category"
     merchant_id = f"{prefix}_merchant"
@@ -199,6 +206,7 @@ def run(base_url: str) -> int:
             "delivered_at": "not-a-timestamp",
         },
         timeout=10,
+        retries=3,
     )
     reporter.check(
         "invalid context rejected",
@@ -275,6 +283,7 @@ def run(base_url: str) -> int:
             "delivered_at": now,
         },
         timeout=10,
+        retries=3,
     )
     reporter.check(
         "context idempotency",
@@ -431,14 +440,20 @@ def main() -> int:
         "--resolve-ip",
         help="Optional fixed IPv4 address for flaky local DNS/routes; HTTPS hostname verification is preserved.",
     )
+    parser.add_argument(
+        "--probe-id",
+        help="Optional stable alphanumeric probe ID, allowing a route-interrupted run to resume context setup.",
+    )
     args = parser.parse_args()
     parsed = parse.urlsplit(args.base_url)
     if parsed.scheme != "https" or not parsed.hostname:
         parser.error("base_url must be a public https URL")
+    if args.probe_id and not args.probe_id.replace("-", "").replace("_", "").isalnum():
+        parser.error("--probe-id may contain only letters, digits, hyphens, and underscores")
 
     try:
         with fixed_dns(parsed.hostname, args.resolve_ip):
-            return run(args.base_url)
+            return run(args.base_url, args.probe_id)
     except LiveTestFailure as exc:
         print(f"\nLIVE E2E FAILED: {exc}", file=sys.stderr)
         return 1
