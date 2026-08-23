@@ -112,10 +112,10 @@ Railway is the shortest deployment path for this repository:
 1. Push this folder to a private or public GitHub repository.
 2. In Railway, create a project from that repository. The root `Dockerfile` and `railway.json` are detected automatically.
 3. Add a persistent volume mounted at `/data`.
-4. Add these service variables: `GOOGLE_API_KEY`, `VERA_DATABASE_PATH=/data/vera.db`, `VERA_MODEL_ENABLED=true`, `VERA_MODELS=google:gemini-3.7-flash,google:gemini-3.6-flash`, and `RAILWAY_RUN_UID=0`.
+4. Add these service variables: `GOOGLE_API_KEY`, `VERA_DATABASE_PATH=/data/vera.db`, `VERA_MODEL_ENABLED=true`, and `VERA_MODELS=google:gemini-3.7-flash,google:gemini-3.6-flash`.
 5. Generate a public domain and keep exactly one replica running throughout evaluation.
 
-`RAILWAY_RUN_UID=0` is required because Railway volumes are mounted as root while this image normally runs as the non-root `vera` user. The secret belongs only in Railway's Variables screen. After deployment, run:
+The entrypoint repairs Railway volume ownership at startup and then runs the application as the non-root `vera` user. The secret belongs only in Railway's Variables screen. After deployment, run:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\preflight.py https://YOUR-PUBLIC-BASE-URL
