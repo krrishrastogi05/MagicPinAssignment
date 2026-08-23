@@ -5,7 +5,6 @@ This file shows the exact HTTP calls the judge will make during testing, and wha
 Every example uses Dr. Meera's Dental Clinic (`m_001_drmeera_dentist_delhi`) as the running merchant.
 
 ---
-
 ## Phase 1 — Warmup (T-15 min)
 
 ### Example 1.1 — `GET /v1/healthz`
