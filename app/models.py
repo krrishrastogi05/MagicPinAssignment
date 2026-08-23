@@ -69,6 +69,7 @@ class TickAction(BaseModel):
     # deliberately excluded so the challenge's JSON response contract stays
     # unchanged.
     composer_source: str = Field(default="unknown", exclude=True, repr=False)
+    composer_detail: str = Field(default="unknown", exclude=True, repr=False)
 
 
 class TickResponse(BaseModel):

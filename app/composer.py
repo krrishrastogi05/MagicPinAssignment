@@ -725,6 +725,28 @@ def validate_composition(
     return errors
 
 
+def _validation_reason_codes(errors: list[str]) -> str:
+    mappings = (
+        ("empty body", "empty-body"),
+        ("body too long", "body-too-long"),
+        ("CTA changed", "cta-changed"),
+        ("more than one", "multiple-questions"),
+        ("URL forbidden", "url-forbidden"),
+        ("repeated body", "repeated-body"),
+        ("unknown fact ids", "unknown-fact-ids"),
+        ("unsupported numbers", "unsupported-numbers"),
+        ("category taboo", "category-taboo"),
+        ("universal taboo", "universal-taboo"),
+    )
+    codes = {
+        code
+        for error in errors
+        for fragment, code in mappings
+        if fragment in error
+    }
+    return ",".join(sorted(codes)) or "other"
+
+
 class Composer:
     PROMPT_VERSION = "composer_v1"
     POLICY_VERSION = "policy_v1"
@@ -797,8 +819,10 @@ class Composer:
         rationale = plan.rationale
         used_fact_ids = plan.used_fact_ids
         composer_name = "deterministic-fallback"
+        composer_detail = "agent-unavailable"
 
         if self._agent is not None:
+            composer_detail = "model-attempted"
             prompt = self._model_prompt(plan)
             try:
                 result = await asyncio.wait_for(
@@ -822,8 +846,13 @@ class Composer:
                     rationale = output.rationale_summary
                     used_fact_ids = output.used_fact_ids
                     composer_name = self.model_label
-            except Exception:
-                pass
+                    composer_detail = "validated-structured-output"
+                else:
+                    composer_detail = "validation:" + _validation_reason_codes(errors)
+            except Exception as exc:
+                # Expose only the failure class: never credentials, prompts,
+                # provider payloads, or model response text.
+                composer_detail = f"exception:{type(exc).__name__}"
 
         fallback_errors = validate_composition(
             body=body,
@@ -841,6 +870,9 @@ class Composer:
             rationale = f"Minimal grounded fallback after validation: {'; '.join(fallback_errors)}"
             used_fact_ids = _select_fact_ids(ledger, body)
             composer_name = "minimal-safe-fallback"
+            composer_detail = "fallback-validation:" + _validation_reason_codes(
+                fallback_errors
+            )
 
         action = TickAction(
             conversation_id=conversation_id,
@@ -859,10 +891,13 @@ class Composer:
             suppression_key=candidate.suppression_key,
             rationale=rationale,
             composer_source=composer_name,
+            composer_detail=composer_detail,
         )
+        cached_response = action.model_dump(mode="json")
+        cached_response["composer_detail"] = composer_detail
         self.store.save_generation(
             cache_key=cache_key,
-            response=action.model_dump(mode="json"),
+            response=cached_response,
             selected_fact_ids=used_fact_ids,
             composer=composer_name,
         )

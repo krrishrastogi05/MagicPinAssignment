@@ -66,9 +66,10 @@ class Client:
     ) -> tuple[int, dict[str, Any], dict[str, str], float]:
         encoded = json.dumps(body).encode("utf-8") if body is not None else None
         last_error: BaseException | None = None
-        started = time.perf_counter()
-
         for attempt in range(retries):
+            # Measure the server-facing attempt, not time spent recovering from
+            # a failed local route before a retry.
+            started = time.perf_counter()
             req = request.Request(
                 f"{self.base_url}{path}",
                 data=encoded,
@@ -320,12 +321,13 @@ def run(base_url: str) -> int:
     )
 
     composer = headers.get("x-vera-composer", "missing")
+    composer_detail = headers.get("x-vera-composer-detail", "missing")
     reporter.check(
         "Gemini actually used",
         "google:gemini" in composer
         and "deterministic-fallback" not in composer
         and "minimal-safe-fallback" not in composer,
-        f"X-Vera-Composer={composer}",
+        f"X-Vera-Composer={composer}; detail={composer_detail}",
     )
 
     status, duplicate_tick, duplicate_headers, elapsed = client.call(
@@ -418,6 +420,9 @@ def run(base_url: str) -> int:
 
 
 def main() -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(
         description="Full public Vera API test, including proof of Gemini composition"
     )

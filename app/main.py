@@ -178,7 +178,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 )
 
         sources = sorted({action.composer_source for action in actions})
+        details = sorted({action.composer_detail for action in actions})
         response.headers["X-Vera-Composer"] = ",".join(sources) if sources else "none"
+        response.headers["X-Vera-Composer-Detail"] = (
+            ",".join(details) if details else "none"
+        )
         return TickResponse(actions=actions)
 
     @app.post("/v1/reply", response_model=ReplyResponse)

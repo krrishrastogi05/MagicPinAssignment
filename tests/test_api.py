@@ -95,6 +95,7 @@ def test_tick_is_grounded_deduplicated_and_deterministic(
     first = client.post("/v1/tick", json=request)
     assert first.status_code == 200
     assert first.headers["x-vera-composer"] == "deterministic-fallback"
+    assert first.headers["x-vera-composer-detail"] == "agent-unavailable"
     actions = first.json()["actions"]
     assert len(actions) == 1
     action = actions[0]
@@ -106,10 +107,12 @@ def test_tick_is_grounded_deduplicated_and_deterministic(
     assert "http" not in action["body"].lower()
     assert action["suppression_key"] == "research:dentists:2026-W17"
     assert "composer_source" not in action
+    assert "composer_detail" not in action
 
     repeated = client.post("/v1/tick", json=request)
     assert repeated.status_code == 200
     assert repeated.headers["x-vera-composer"] == "none"
+    assert repeated.headers["x-vera-composer-detail"] == "none"
     assert repeated.json() == {"actions": []}
 
 
