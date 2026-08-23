@@ -776,8 +776,8 @@ class Composer:
                 model,
                 output_type=LLMComposition,
                 instructions=(
-                    "You compose one concise WhatsApp message for Vera. The decision is already made. "
-                    "Use only allowed facts, preserve the requested CTA, never invent numbers/names/offers/sources, "
+                    "You compose one concise WhatsApp message for Vera. The decision and its CTA are already fixed. "
+                    "Write only the body so it lands that CTA: use only allowed facts, never invent numbers/names/offers/sources, "
                     "and return the fact_ids you actually used. Ask at most one question."
                 ),
                 # Gemini 3.x rejects the legacy sampling parameters. Keep the
@@ -830,9 +830,10 @@ class Composer:
                     timeout=self.settings.model_timeout_seconds,
                 )
                 output: LLMComposition = result.output
+                # The plan owns the CTA; the model only writes the body.
                 errors = validate_composition(
                     body=output.body,
-                    cta=output.cta,
+                    cta=plan.brief.cta,
                     used_fact_ids=output.used_fact_ids,
                     ledger=ledger,
                     category=candidate.category_payload,
@@ -842,7 +843,6 @@ class Composer:
                 )
                 if not errors:
                     body = " ".join(output.body.split())
-                    cta = output.cta
                     rationale = output.rationale_summary
                     used_fact_ids = output.used_fact_ids
                     composer_name = self.model_label

@@ -148,7 +148,10 @@ class MessageBrief(BaseModel):
 
 
 class LLMComposition(BaseModel):
+    # The CTA is a policy decision already fixed by the deterministic plan, so
+    # the model does not choose it — it only realizes the message prose. Asking
+    # the model for a CTA only invited near-miss enum values (e.g. "yes_no")
+    # that failed validation and discarded every otherwise-valid composition.
     body: str = Field(min_length=1, max_length=1200)
-    cta: str
     used_fact_ids: list[str]
     rationale_summary: str = Field(min_length=1, max_length=500)
