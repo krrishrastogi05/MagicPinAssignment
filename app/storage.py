@@ -137,6 +137,23 @@ class Store:
             connection.execute("PRAGMA journal_mode = WAL")
             connection.execute("PRAGMA synchronous = NORMAL")
             connection.executescript(schema)
+            # The Railway volume persists `contexts` so a mid-session restart
+            # keeps the base data the harness pushed once at warmup. Everything
+            # else is per-evaluation-session state: consumed suppression keys,
+            # cooldowns, and conversations. Persisting those across sessions
+            # would dedup a fresh evaluation's canonical triggers down to zero
+            # actions, so we clear them on every boot. In-session dedup still
+            # works because there is no restart within a session.
+            connection.executescript(
+                """
+                DELETE FROM suppressions;
+                DELETE FROM conversations;
+                DELETE FROM turns;
+                DELETE FROM merchant_fingerprints;
+                DELETE FROM generations;
+                DELETE FROM cooldowns;
+                """
+            )
 
     def put_context(
         self,
@@ -156,9 +173,19 @@ class Store:
                 "SELECT * FROM contexts WHERE scope = ? AND context_id = ?",
                 (scope, context_id),
             ).fetchone()
-            if current is not None and int(current["version"]) >= version:
-                connection.rollback()
-                return False, self._context_from_row(current)
+            if current is not None:
+                current_version = int(current["version"])
+                if version < current_version:
+                    connection.rollback()
+                    return False, self._context_from_row(current)
+                if version == current_version:
+                    # Idempotent replay: an identical payload at the same
+                    # version is a no-op success (the harness re-pushes its
+                    # base contexts on every warmup). Only a *different*
+                    # payload at the same version is a real conflict.
+                    connection.rollback()
+                    idempotent = current["payload_hash"] == payload_hash
+                    return idempotent, self._context_from_row(current)
             connection.execute(
                 """
                 INSERT INTO contexts

@@ -31,6 +31,13 @@ def test_context_versioning_is_monotonic(client: TestClient):
     assert first.status_code == 200
     assert first.json()["accepted"] is True
 
+    # Identical replay of the same version is an idempotent no-op success:
+    # the judge harness re-pushes its base contexts on every warmup.
+    idempotent = push(client, "category", "dentists", {"slug": "dentists"}, 1)
+    assert idempotent.status_code == 200
+    assert idempotent.json()["accepted"] is True
+
+    # Same version with a *different* payload is a genuine conflict.
     replay = push(client, "category", "dentists", {"slug": "wrong"}, 1)
     assert replay.status_code == 409
     assert replay.json()["current_version"] == 1
