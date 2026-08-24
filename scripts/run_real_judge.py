@@ -50,8 +50,8 @@ def main() -> int:
             "contents": [{"parts": [{"text": full}]}],
             "generationConfig": {
                 "temperature": 0.2,
-                "maxOutputTokens": 4000,
-                "thinkingConfig": {"thinkingBudget": 0},
+                "maxOutputTokens": 2000,
+                "thinkingConfig": {"thinkingBudget": 256},
             },
         }).encode("utf-8")
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
