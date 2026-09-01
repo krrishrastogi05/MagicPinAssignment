@@ -150,6 +150,41 @@ def _aggregate_count(candidate: Candidate, *keys: str) -> int | None:
     return None
 
 
+def _salient_facts(payload: dict[str, Any], limit: int = 3) -> str:
+    """A short grounded summary of an arbitrary trigger payload.
+
+    The judge injects trigger kinds we have no hand-written template for. Rather
+    than fall back to generic copy, we surface the payload's own numbers, dates,
+    and named values so even an unseen signal reads specific. Every value comes
+    straight from the payload, so it stays inside the provenance validator.
+    """
+    skip = {"merchant_id", "customer_id", "category", "scope", "kind", "urgency", "suppression_key"}
+    phrases: list[str] = []
+    for key, value in payload.items():
+        if key in skip or key == "id" or key.endswith("_id"):
+            continue
+        label = _clean_label(key)
+        if isinstance(value, bool):
+            continue
+        if isinstance(value, (int, float)):
+            phrases.append(f"{label} {_pct(value) if 'pct' in key or 'percent' in key else value}")
+        elif isinstance(value, str) and value:
+            try:
+                datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError:
+                if len(value) <= 40:
+                    phrases.append(f"{label} {_clean_label(value)}")
+            else:
+                phrases.append(f"{label} {_human_date(value)}")
+        elif isinstance(value, list) and value:
+            items = [_clean_label(v) for v in value[:3] if isinstance(v, (str, int, float))]
+            if items:
+                phrases.append(f"{label} {', '.join(str(i) for i in items)}")
+        if len(phrases) >= limit:
+            break
+    return "; ".join(phrases)
+
+
 def _find_digest(candidate: Candidate) -> dict[str, Any] | None:
     body = candidate.trigger_payload.get("payload", {})
     ids = {
@@ -617,16 +652,31 @@ def build_message_plan(candidate: Candidate, ledger: list[Fact]) -> MessagePlan:
                 "Reply YES and our team will confirm it before proceeding."
             )
     else:
+        # Unseen trigger kind: surface the payload's own facts so the message
+        # stays specific instead of generic. The LLM overlay leads with the
+        # sharpest of these; the deterministic body lists them plainly.
+        salient = _salient_facts(payload)
         topic = _clean_label(payload.get("metric_or_topic") or kind)
-        primary = f"new {topic} trigger"
-        offered_work = "prepare one grounded next step"
-        offer_text = f" using {offer}" if offer else ""
-        body = (
-            f"{owner}, a new {topic} signal is active for {merchant_name}. "
-            f"Want me to prepare one grounded next step{offer_text}?"
-        )
+        offer_text = f" Your active {offer} is the hook." if offer else ""
+        if salient:
+            primary = salient
+            offered_work = "turn this signal into one concrete next step"
+            body = (
+                f"{owner}, new signal for {merchant_name} — {salient}.{offer_text} "
+                "Want me to turn this into one concrete next step? 5-min job."
+            )
+        else:
+            primary = f"new {topic} trigger"
+            offered_work = "prepare one grounded next step"
+            body = (
+                f"{owner}, a new {topic} signal is active for {merchant_name}.{offer_text} "
+                "Want me to prepare one grounded next step?"
+            )
 
     fact_ids = _select_fact_ids(ledger, body)
+    voice_block = candidate.category_payload.get("voice", {})
+    vocab = voice_block.get("vocab_allowed", []) if isinstance(voice_block, dict) else []
+    category_vocab = [str(v) for v in vocab[:8]] if isinstance(vocab, list) else []
     brief = MessageBrief(
         trigger_kind=kind,
         goal=goal,
@@ -639,6 +689,7 @@ def build_message_plan(candidate: Candidate, ledger: list[Fact]) -> MessagePlan:
         offered_work=offered_work,
         cta=cta,
         send_as=send_as,
+        category_vocab=category_vocab,
         allowed_facts=ledger,
     )
     rationale = (

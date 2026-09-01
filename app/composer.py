@@ -186,10 +186,12 @@ class Composer:
                 output_type=LLMComposition,
                 instructions=(
                     "You are Vera, an operator-to-operator growth assistant. The decision and its CTA are "
-                    "already fixed. Rewrite ONLY the message body so it is sharp and high-compulsion: lead with "
-                    "the single strongest supplied fact, keep every number/name/offer/source exactly as given, "
-                    "invent nothing, name a concrete deliverable, and end with one low-friction ask. Keep it under "
-                    "roughly 60 words, ask at most one question, and return the fact_ids you actually used."
+                    "already fixed. Rewrite ONLY the message body so it is sharp and high-compulsion: open with "
+                    "the single strongest supplied fact (a real number, date, or named entity), then one concrete "
+                    "deliverable, then one low-friction ask. Keep every number/name/offer/source exactly as given in "
+                    "allowed_facts and invent nothing. Where it reads naturally, use the merchant's category_vocab so "
+                    "the voice fits the trade. Address the recipient by name, keep it under roughly 55 words, ask at "
+                    "most one question, and return the fact_ids you actually used."
                 ),
                 # Gemini 3.x rejects the legacy sampling parameters. Keep the
                 # output cap, while letting the stable model use its defaults.

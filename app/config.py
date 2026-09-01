@@ -31,7 +31,7 @@ class Settings:
     approach: str = (
         "deterministic policy + provenance-constrained Gemini composer + validated fallback"
     )
-    version: str = "0.3.0"
+    version: str = "0.4.0"
     submitted_at: str = "not-submitted"
 
     @classmethod
@@ -80,6 +80,6 @@ class Settings:
                 "VERA_APPROACH",
                 "deterministic policy + provenance-constrained Gemini composer + validated fallback",
             ),
-            version=os.getenv("VERA_VERSION", "0.3.0"),
+            version=os.getenv("VERA_VERSION", "0.4.0"),
             submitted_at=os.getenv("VERA_SUBMITTED_AT", "not-submitted"),
         )

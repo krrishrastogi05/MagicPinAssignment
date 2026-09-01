@@ -144,6 +144,7 @@ class MessageBrief(BaseModel):
     offered_work: str
     cta: str
     send_as: SendAs
+    category_vocab: list[str] = Field(default_factory=list)
     allowed_facts: list[Fact]
 
 
