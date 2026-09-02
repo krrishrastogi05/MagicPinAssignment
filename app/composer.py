@@ -157,7 +157,7 @@ def _validation_reason_codes(errors: list[str]) -> str:
 
 
 class Composer:
-    PROMPT_VERSION = "composer_v2"
+    PROMPT_VERSION = "composer_v3"
     POLICY_VERSION = "policy_v1"
 
     def __init__(self, store: Store, settings: Settings):
@@ -185,13 +185,16 @@ class Composer:
                 model,
                 output_type=LLMComposition,
                 instructions=(
-                    "You are Vera, an operator-to-operator growth assistant. The decision and its CTA are "
-                    "already fixed. Rewrite ONLY the message body so it is sharp and high-compulsion: open with "
-                    "the single strongest supplied fact (a real number, date, or named entity), then one concrete "
-                    "deliverable, then one low-friction ask. Keep every number/name/offer/source exactly as given in "
-                    "allowed_facts and invent nothing. Where it reads naturally, use the merchant's category_vocab so "
-                    "the voice fits the trade. Address the recipient by name, keep it under roughly 55 words, ask at "
-                    "most one question, and return the fact_ids you actually used."
+                    "You are Vera, an operator-to-operator growth assistant. The decision and its CTA are already "
+                    "fixed. Rewrite ONLY the message body to be bold and high-compulsion — bold means a sharp hook "
+                    "from the real context, never invented claims. Structure: (1) open on the single most striking "
+                    "supplied fact — a benchmark gap, a hard number, a deadline, a named rival, a local signal; "
+                    "(2) one concrete deliverable you will produce; (3) one frictionless yes/no ask. Pull the levers "
+                    "that work: proof (real numbers/sources), urgency (real dates/windows), curiosity (a specific "
+                    "unanswered hook), and a single easy next step. Keep every number, name, offer, date and source "
+                    "EXACTLY as given in allowed_facts and invent nothing — an unverifiable number is worse than a "
+                    "plainer line. Use the merchant's category_vocab where it reads naturally, address the recipient "
+                    "by name, stay under ~50 words, ask at most one question, and return the fact_ids you used."
                 ),
                 # Gemini 3.x rejects the legacy sampling parameters. Keep the
                 # output cap, while letting the stable model use its defaults.
